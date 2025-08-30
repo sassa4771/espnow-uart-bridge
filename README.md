@@ -1,14 +1,14 @@
 # espnow-uart-bridge
 
 Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WROOM-32).
-- HDR persistence (NVS) & periodic HDR resend
-- Send queue & inflight limit (NO_MEM 回避)
-- Auto re-init on stall + heartbeat (HB)
-- CRC16 check, LED indicators, CSV 出力（子機）
+- HDR persistence (NVS) & periodic HDR resend  
+- Send queue & inflight limit (NO_MEM 回避)  
+- Auto re-init on stall + heartbeat (HB)  
+- CRC16 check, LED indicators, CSV 出力（子機）  
 - Optional transparent repeater for multi-hop
 
 > **Main programs:** `parent_uart_bridge`（親機） / `child_uart_bridge`（子機）  
-> Other sketches under `demos/` are for education and testing.
+> Other sketches under `examples/` & `firmware/tools/` are for education and testing.
 
 ---
 
@@ -36,33 +36,55 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 
 </details>
 
-*Shown:* `student_uart_demo.ino` → `parent_uart_bridge` → `child_uart_bridge` のシリアル出力挙動（Arduino IDE）。
+*Shown:* `examples/student_uart_demo/student_uart_demo.ino` → `firmware/bridge/parent_uart_bridge` → `firmware/bridge/child_uart_bridge` のシリアル出力挙動（Arduino IDE）。
 
 ---
 
 ## Repository layout
 
 ```
-firmware/
-  bridge/
-    parent_uart_bridge/parent_uart_bridge.ino   ← UART→ESP-NOW（NVS, queue, auto-reinit, HB, LED）
-    child_uart_bridge/child_uart_bridge.ino     ← ESP-NOW→CSV（CRC, LED, auto-reinit）
-  demos/
-    student_uart_demo/student_uart_demo.ino     ← HDR + DAT を50Hzで出す送信デモ
-  tools/
-    repeater_forwarder/repeater_forwarder.ino   ← 透明リピータ（任意）
 docs/
-  overview.md
-  packet-format.md
-  glossary.md
   assets/
     Wiring_Diagram.png
     esp_now_demo.mp4
+
+examples/
+  student_uart_demo/
+    student_uart_demo.ino
+    README.md
+
+firmware/
+  bridge/
+    child_uart_bridge/
+      child_uart_bridge.ino
+    parent_uart_bridge/
+      parent_uart_bridge.ino
+
+  demos/
+    IMU_Send_Demo/
+      firmware/
+        imu_receiver_m5atom.ino
+        imu_sender_m5stickc.ino
+      README.md
+
+  tools/
+    MAC_Check/
+      mac_check/
+        mac_check.ino
+    ping-pong/
+      firmware/
+        ping_pong_resender/
+          ping_pong_resender.ino
+        ping_pong_initiator/
+          ping_pong_initiator.ino
+      README.md
+
 host/
   python/
-    apps/viewer.py            ← （今後追加予定：UART可視化）
-    requirements.txt          ← （今後追加予定）
+    (planned: apps/viewer.py, requirements.txt)
 ```
+
+> 可能ならフォルダ名は **小文字+ハイフン**（e.g. `imu-send-demo`）に統一すると検索性が上がります。
 
 ---
 
@@ -81,7 +103,7 @@ host/
    - Serial @ **115200** で `[STAT]` や `[REINIT]` ログを確認
 
 3. **Sender (your MCU or demo)**  
-   - すぐ試すなら `firmware/demos/student_uart_demo/student_uart_demo.ino` を別のESP32に書き込み  
+   - すぐ試すなら `examples/student_uart_demo/student_uart_demo.ino` を別のESP32に書き込み  
      - 出力例  
        - `HDR,1,GLDR,fields=dt_ms,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp,rate=50`（起動時）  
        - `DAT,<seq>,<t_ms>,<dt_ms>,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp`（50Hz）  
@@ -186,5 +208,5 @@ MIT（推奨）。`LICENSE` を参照。
 
 ## Acknowledgements
 
-Includes “gliderlink” reference implementation under `firmware/bridge/`.  
-Demos and educational sketches are preserved under `firmware/demos/`.
+Includes the “gliderlink” reference implementation under `firmware/bridge/`.  
+Demos and educational sketches are preserved under `examples/` and `firmware/tools/`.
