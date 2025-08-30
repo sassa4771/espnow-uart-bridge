@@ -75,7 +75,6 @@ host/
     (planned: apps/viewer.py, requirements.txt)
 ```
 
-> 可能ならフォルダ名は **小文字+ハイフン**（e.g. `imu-send-demo`）に統一すると検索性が上がります。
 
 ---
 
