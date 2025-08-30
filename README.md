@@ -27,15 +27,6 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 > GitHub では動画はインライン再生されないことがあります。直接ファイルを開くかダウンロードしてご覧ください。  
 > `docs/assets/esp_now_demo.mp4`
 
-<details>
-<summary>HTML埋め込み（表示できる環境向け）</summary>
-
-<video src="docs/assets/esp_now_demo.mp4" controls width="720">
-  Your browser does not support the video tag.
-</video>
-
-</details>
-
 *Shown:* `examples/student_uart_demo/student_uart_demo.ino` → `firmware/bridge/parent_uart_bridge` → `firmware/bridge/child_uart_bridge` のシリアル出力挙動（Arduino IDE）。
 
 ---
