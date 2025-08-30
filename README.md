@@ -204,7 +204,7 @@ const uint32_t HZ = 50;
 
 ## License
 
-MIT（推奨）。`LICENSE` を参照。
+MIT
 
 ## Acknowledgements
 
