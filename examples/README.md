@@ -16,7 +16,7 @@
    ESP-NOW 受信 → PC へ CSV 出力（シリアル）
 
 **配線図**: `docs/assets/Wiring_Diagram.png`  
-**デモ動画**: `docs/assets/esp_now_demo.mp4`
+**デモ動画**: `docs/assets/esp_now_demo.gif`
 
 ---
 
