@@ -1,6 +1,6 @@
 # 用語集（espnow-flight-telemetry）
 
-このドキュメントは、`espnow-flight-telemetry` リポジトリで頻出する用語・概念を**実装者目線**で簡潔にまとめたものです。学生が作る機体側MCUからのUART出力、ESP-NOWでの無線伝送、PCでのログ/可視化まで一連の流れで迷わないように整理しています。
+このドキュメントは、`espnow-flight-telemetry` リポジトリで頻出する用語・概念を**実装者目線**で簡潔にまとめたものです。ログを取りたい機体側MCUからのUART出力、ESP-NOWでの無線伝送、PCでのログ/可視化まで一連の流れで迷わないように整理しています。
 
 > 参考動画（ESP-NOW 概要）: https://www.youtube.com/watch?v=bEKjCDDUPaU
 
@@ -62,7 +62,7 @@ HDR,1,GLDR,fields=ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp,rate=50
 DAT,<src_seq>,<t_ms>,<values...>
 例) DAT,12345,1740.12,-9.801,0.031,0.020,-0.12,0.45,-0.03,1520,1480,1500,11.92,36.5
 ```
-**利点**: 学生が `Serial.println()` だけで実装しやすい。列の追加/削除は **HDR** で表明。
+**利点**: メインMCUからの `Serial.println()` だけで実装しやすい。列の追加/削除は **HDR** で表明。
 
 ---
 
@@ -80,7 +80,7 @@ DAT,<src_seq>,<t_ms>,<values...>
 ---
 
 ### MCU（Microcontroller Unit）
-**何**: 機体に搭載する学生側のマイコン。IMU/舵面などを読み、**HDR→DAT** を **UART** で親機へ送る。
+**何**: 機体に搭載するログを取りたい側のマイコン。IMU/舵面などを読み、**HDR→DAT** を **UART** で親機へ送る。
 
 ---
 
