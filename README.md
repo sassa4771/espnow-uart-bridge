@@ -93,7 +93,7 @@ host/
    - Serial @ **115200** で `[STAT]` や `[REINIT]` ログを確認
 
 3. **Sender (your MCU or demo)**  
-   - すぐ試すなら `examples/student_uart_demo/student_uart_demo.ino` を別のESP32に書き込み  
+   - すぐ試すなら `examples/yourMCU_uart_demo/yourMCU_uart_demo.ino` を別のESP32に書き込み  
      - 出力例  
        - `HDR,1,GLDR,fields=dt_ms,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp,rate=50`（起動時）  
        - `DAT,<seq>,<t_ms>,<dt_ms>,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp`（50Hz）  
@@ -132,7 +132,7 @@ const int CHANNEL = 1;     // must match parent
 #define REQUIRE_HDR 0
 ```
 
-**student_uart_demo**（デモ）
+**yourMCU_uart_demo**（デモ）
 ```cpp
 // Outgoing UART to parent
 HardwareSerial& OUT = Serial1;
