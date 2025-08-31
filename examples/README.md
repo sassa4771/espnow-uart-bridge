@@ -148,4 +148,4 @@ if (millis() - last_hdr_ms > HDR_PERIOD_MS) {
 
 ## ライセンス
 
-このフォルダ内のコードは本リポジトリの **LICENSE**（例：MIT）に従う。
+このフォルダ内のコードは本リポジトリの **LICENSE**に従う。
