@@ -1,4 +1,4 @@
-# student_uart_demo
+# yourMCU_uart_demo
 
 **目的**  
 このスケッチは「メインMCU側のサンプル」として、**UART 経由で HDR/DAT（CSV）** を出力する送信デモである。  
@@ -8,7 +8,7 @@
 
 ## システム構成（役割）
 
-1. **student_uart_demo**（本スケッチ）  
+1. **yourMCU_uart_demo**（本スケッチ）  
    UART で HDR（スキーマ）と DAT（データ行）を送信
 2. **parent_uart_bridge**（親機）  
    UART 受信 → スキーマ（HDR）から `schema_id` を算出 → ESP-NOW でブリッジ送信
@@ -74,7 +74,7 @@ DAT,2,230,20.000,-9.805,0.002,0.019,0.001,0.299,0.001,5,1504,11.80,35.21
 ## ビルド & 実行
 
 1. ボード例：**ESP32-WROOM-32 DevKit** を選択  
-2. `student_uart_demo.ino` を開く  
+2. `yourMCU_uart_demo.ino` を開く  
 3. 「設定」セクションで **TX ピン** や **送信レート** を必要に応じて変更  
 4. 書き込み → シリアルモニタ（115200）で `HDR` と連続する `DAT` を確認  
 5. 親機・子機を起動し、**子機のシリアル**にも CSV が出力されることを確認
