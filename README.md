@@ -220,15 +220,15 @@ const uint32_t HZ = 50;
 
 ---
 
-## Host-side (planned)
+## Host-side
 
 `host/python/apps/viewer.py`：  
 - UART からの CSV をリアルタイム可視化・記録（`pyserial`, `pandas`, `matplotlib/pyqtgraph`, `rich`, `typer`）  
 - ポート選択、保存、プロット対象フィールド、ダウンサンプリング、HDR追従
 
----
-
 ![python_graph](docs/assets/python_graph.gif)
+
+---
 
 ## License
 
@@ -236,5 +236,10 @@ MIT
 
 ## Acknowledgements
 
-Includes the “gliderlink” reference implementation under `firmware/bridge/`.  
-Demos and educational sketches are preserved under `examples/` and `firmware/tools/`.
+- **Espressif Systems** — for ESP-NOW and ESP-IDF / Arduino-ESP32.
+- **Arduino-ESP32 core maintainers** — for maintaining the ESP32 Arduino core.
+- **Seeed Studio** — for XIAO ESP32-C3 board support and documentation.
+- **M5Stack** — for M5StickC / M5Atom libraries and examples (used in IMU demos).
+- **References** — ESP-NOW overview video (YouTube): https://www.youtube.com/watch?v=bEKjCDDUPaU
+- **Contributors / Testers** — thanks to everyone who helped with experiments and validation.
+
