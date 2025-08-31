@@ -1,7 +1,7 @@
 # student_uart_demo
 
 **目的**  
-このスケッチは「学生側 MCU の代役」として、**UART 経由で HDR/DAT（CSV）** を出力する送信デモである。  
+このスケッチは「メインMCU側のサンプル」として、**UART 経由で HDR/DAT（CSV）** を出力する送信デモである。  
 親機（`parent_uart_bridge`）が本データを受信し **ESP-NOW** で子機へ転送、子機（`child_uart_bridge`）は **PC に CSV を出力**する。
 
 ---
