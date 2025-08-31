@@ -1,14 +1,14 @@
-# student_uart_demo
+# yourMCU_uart_demo
 
 **目的**  
-このスケッチは「学生側 MCU の代役」として、**UART 経由で HDR/DAT（CSV）** を出力する送信デモである。  
+このスケッチは「メインMCU側のサンプル」として、**UART 経由で HDR/DAT（CSV）** を出力する送信デモである。  
 親機（`parent_uart_bridge`）が本データを受信し **ESP-NOW** で子機へ転送、子機（`child_uart_bridge`）は **PC に CSV を出力**する。
 
 ---
 
 ## システム構成（役割）
 
-1. **student_uart_demo**（本スケッチ）  
+1. **yourMCU_uart_demo**（本スケッチ）  
    UART で HDR（スキーマ）と DAT（データ行）を送信
 2. **parent_uart_bridge**（親機）  
    UART 受信 → スキーマ（HDR）から `schema_id` を算出 → ESP-NOW でブリッジ送信
@@ -16,7 +16,7 @@
    ESP-NOW 受信 → PC へ CSV 出力（シリアル）
 
 **配線図**: `docs/assets/Wiring_Diagram.png`  
-**デモ動画**: `docs/assets/esp_now_demo.mp4`
+**デモ動画**: `docs/assets/esp_now_demo.gif`
 
 ---
 
@@ -74,7 +74,7 @@ DAT,2,230,20.000,-9.805,0.002,0.019,0.001,0.299,0.001,5,1504,11.80,35.21
 ## ビルド & 実行
 
 1. ボード例：**ESP32-WROOM-32 DevKit** を選択  
-2. `student_uart_demo.ino` を開く  
+2. `yourMCU_uart_demo.ino` を開く  
 3. 「設定」セクションで **TX ピン** や **送信レート** を必要に応じて変更  
 4. 書き込み → シリアルモニタ（115200）で `HDR` と連続する `DAT` を確認  
 5. 親機・子機を起動し、**子機のシリアル**にも CSV が出力されることを確認
@@ -148,4 +148,4 @@ if (millis() - last_hdr_ms > HDR_PERIOD_MS) {
 
 ## ライセンス
 
-このフォルダ内のコードは本リポジトリの **LICENSE**（例：MIT）に従う。
+このフォルダ内のコードは本リポジトリの **LICENSE**に従う。

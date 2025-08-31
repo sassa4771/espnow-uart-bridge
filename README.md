@@ -24,9 +24,7 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 
 ## Demo (video)
 
-> GitHub では動画はインライン再生されないことがあります。直接ファイルを開くかダウンロードしてご覧ください。  
-> `docs/assets/esp_now_demo.mp4`
-
+![esp_now_demo](docs/assets/esp_now_demo.gif)
 *Shown:* `examples/student_uart_demo/student_uart_demo.ino` → `firmware/bridge/parent_uart_bridge` → `firmware/bridge/child_uart_bridge` のシリアル出力挙動（Arduino IDE）。
 
 ---
@@ -72,7 +70,9 @@ firmware/
 
 host/
   python/
-    (planned: apps/viewer.py, requirements.txt)
+    apps/
+       viewer.py
+       requirements.txt
 ```
 
 
@@ -186,11 +186,13 @@ const uint32_t HZ = 50;
 
 ## Host-side (planned)
 
-`host/python/apps/viewer.py`（今後追加）：  
+`host/python/apps/viewer.py`：  
 - UART からの CSV をリアルタイム可視化・記録（`pyserial`, `pandas`, `matplotlib/pyqtgraph`, `rich`, `typer`）  
 - ポート選択、保存、プロット対象フィールド、ダウンサンプリング、HDR追従
 
 ---
+
+![python_graph](docs/assets/python_graph.gif)
 
 ## License
 
