@@ -52,9 +52,12 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 
 ![Wiring Diagram](docs/assets/Wiring_Diagram.png)
 
-**Sender**: Your main MCU → **Parent**(ESP32) via UART  
-**Link**: Parent → **Child** via ESP-NOW (same channel)  
-**Receiver**: Child → PC via USB (CSV)
+> [!IMPORTANT]
+> **Sender**: Your main MCU → **Parent**(ESP32) via UART
+> 
+> **Link**: Parent → **Child** via ESP-NOW (same channel)
+> 
+> **Receiver**: Child → PC via USB (CSV)
 
 ---
 
@@ -128,8 +131,15 @@ README.md
        - `DAT,<seq>,<t_ms>,<dt_ms>,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp`（50Hz）  
    - 実機MCUからは同じ CSV 形式で UART 送信すれば、そのまま橋渡しされます
 
+> [!IMPORTANT]
 > **全ノード同一チャネル必須。** LR を使う場合は **親/子/中継**すべてで `USE_WIFI_LR` を同時に有効化。
 
+> [!TIP]
+> 親機：firmware/bridge/child_uart_bridge
+> 
+> 子機：firmware/bridge/parent_uart_bridge
+> 
+> 滑空機のマイコン：examples/yourMCU_uart_demo
 ---
 
 ## Configuration (parent / child)
