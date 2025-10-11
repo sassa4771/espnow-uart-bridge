@@ -11,7 +11,7 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 - Optional transparent repeater for multi-hop
 
 > **Main programs:** `parent_uart_bridge`（親機） / `child_uart_bridge`（子機）  
-> Other sketches under `examples/` & `firmware/tools/` are for education and testing.
+> Other sketches under `examples/` & `tools/` are for education and testing.
 
 ---
 
@@ -68,47 +68,40 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 ## Repository layout
 
 ```
-docs/
+docs/ — ドキュメント類（配線図・デモ動画などを格納）
   assets/
+    esp_now_demo.gif
+    python_graph.gif
+    Wiring diagram.pptx
     Wiring_Diagram.png
-    esp_now_demo.mp4
+  glossary.md
+  overview.md
+  packet-format.md
 
-examples/
+examples/ — your MCU に書き込むデモ用プログラム
   yourMCU_uart_demo/
     yourMCU_uart_demo.ino
-    README.md
+  README.md
 
-firmware/
-  bridge/
+firmware/ — メイン：ESP-NOW UART ブリッジ（espnow-uart-bridge）のプログラム群
+  bridge/ — 親機・子機ブリッジのスケッチ
     child_uart_bridge/
       child_uart_bridge.ino
     parent_uart_bridge/
       parent_uart_bridge.ino
 
-  demos/
-    IMU_Send_Demo/
-      firmware/
-        imu_receiver_m5atom.ino
-        imu_sender_m5stickc.ino
-      README.md
-
-  tools/
-    MAC_Check/
-      mac_check/
-        mac_check.ino
-    ping-pong/
-      firmware/
-        ping_pong_resender/
-          ping_pong_resender.ino
-        ping_pong_initiator/
-          ping_pong_initiator.ino
-      README.md
-
-host/
+host/ — Python 製ホストソフトウェア・デモプログラム（可視化・データ解析用）
   python/
     apps/
-       viewer.py
-       requirements.txt
+       viewer.py — センサデータのリアルタイムビューア
+       requirements.txt — 依存ライブラリ一覧
+
+tools/ — 動作確認ツール（MACアドレスチェックなど）
+  MAC_Check/ — MACアドレス確認用プログラム
+    mac_check/
+      mac_check.ino
+
+README.md
 ```
 
 
