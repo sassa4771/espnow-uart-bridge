@@ -1,4 +1,5 @@
 # espnow-uart-bridge
+> [!NOTE]
 > 本プロジェクトは **ESP-NOW 上の一方向テレメトリ（親機→子機）** を想定しています。
 > MCU から親機へ UART で送られた CSV（HDR/DAT）を、親機が ESP-NOW で送信し、
 > 子機が受信して PC に CSV で出力します。※ 現時点で uplink/返信は未実装。
