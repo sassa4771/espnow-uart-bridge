@@ -1,52 +1,55 @@
 # espnow-uart-bridge
+
+[日本語版 README はこちら / Japanese README](README_ja.md)
+
 > [!NOTE]
-> 本プロジェクトは **ESP-NOW 上の一方向テレメトリ（親機→子機）** を想定しています。
-> MCU から親機へ UART で送られた CSV（HDR/DAT）を、親機が ESP-NOW で送信し、
-> 子機が受信して PC に CSV で出力します。※ 現時点で uplink/返信は未実装。
+> This project is designed for **one-way telemetry over ESP-NOW (parent → child)**.
+> CSV data (HDR/DAT) sent from an MCU to the parent via UART is transmitted by the parent over ESP-NOW,
+> received by the child, and output to a PC as CSV. ※ Uplink/reply functionality is not yet implemented.
 
 Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WROOM-32).
 - HDR persistence (NVS) & periodic HDR resend  
-- Send queue & inflight limit (NO_MEM 回避)  
+- Send queue & inflight limit (NO_MEM avoidance)  
 - Auto re-init on stall + heartbeat (HB)  
-- CRC16 check, LED indicators, CSV 出力（子機）  
+- CRC16 check, LED indicators, CSV output (child)  
 - Optional transparent repeater for multi-hop
 
-> **Main programs:** `parent_uart_bridge`（親機） / `child_uart_bridge`（子機）  
+> **Main programs:** `parent_uart_bridge` (parent) / `child_uart_bridge` (child)  
 > Other sketches under `examples/` & `tools/` are for education and testing.
 
 ---
 
-## Why this project?（強み）
+## Why this project? (Strengths)
 
-本プロジェクトは、**汎用MCUのUART出力を、そのまま高速・低遅延でPCまで橋渡し**するための、実運用を意識した ESP-NOW ブリッジです。研究・教育・競技現場での「落ちない・詰まらない・すぐ診れる」を重視しています。
+This project is a production-ready ESP-NOW bridge designed to **relay UART output from general-purpose MCUs to a PC with high speed and low latency**. It emphasizes "no crashes, no stalls, immediate diagnostics" for research, education, and competitive environments.
 
-### 1) 信頼性・復旧性
-- **HDR永続化 + 定期再送**：スキーマ（列名）を NVS に保存し、親機/子機の**どちらかが後から復帰**しても自動同期。電源断・リセットに強い。
-- **送信キュー + 同時送信(inflight)制御**：UART供給と無線処理の速度差を吸収し、`ESP_ERR_ESPNOW_NO_MEM` を抑制。
-- **自動再初期化（[REINIT]）**：無線が詰まったら `esp_now_deinit → wifi stop/start → set_channel → esp_now_init → add_peer` を自動実行し、リンクを自己修復。
-- **CRC16-CCITT**：空間での誤りを検知し、破損フレームを捨てて**クリーンなCSV**を保証。
-- **ハートビート(HB) + STAT**：シリアルの `[STAT]` で**スループットやドロップ**を一目で確認。
+### 1) Reliability & Recovery
+- **HDR persistence + periodic resend**: Schema (column names) is saved to NVS, enabling automatic synchronization even when **either parent or child recovers later**. Resilient to power loss and resets.
+- **Send queue + inflight control**: Absorbs the speed difference between UART supply and wireless processing, suppressing `ESP_ERR_ESPNOW_NO_MEM`.
+- **Auto re-initialization ([REINIT])**: When wireless stalls, automatically executes `esp_now_deinit → wifi stop/start → set_channel → esp_now_init → add_peer` to self-heal the link.
+- **CRC16-CCITT**: Detects errors in transmission and discards corrupted frames to guarantee **clean CSV**.
+- **Heartbeat (HB) + STAT**: Check **throughput and drops** at a glance via serial `[STAT]`.
 
-### 2) シンプル & 相互運用
-- **テキストCSVで合意、空中は効率的なバイナリ**：MCU↔親機は読みやすい `HDR/DAT`（CSV）、空中は `NowFrame`（バイナリ）で効率化。
-- **スキーマ非依存**：`fields=` の**列名の順序が仕様**。どんなデータ構成でも同じ器で運べます（IMUや操舵、バッテリー等）。
-- **可搬性**：XIAO ESP32-C3 / ESP32-WROOM-32 など**Arduino-ESP32 v3 / ESP-IDF v5 世代**で動作確認済み。
+### 2) Simple & Interoperable
+- **Text CSV agreement, efficient binary over-the-air**: MCU ↔ parent uses readable `HDR/DAT` (CSV), while over-the-air uses `NowFrame` (binary) for efficiency.
+- **Schema-agnostic**: The **order of column names in `fields=`** is the specification. Any data configuration (IMU, steering, battery, etc.) can be transported in the same container.
+- **Portability**: Verified to work on XIAO ESP32-C3 / ESP32-WROOM-32 and other **Arduino-ESP32 v3 / ESP-IDF v5 generation** devices.
 
-### 3) 性能・運用のしやすさ
-- **低遅延・実用スループット**：DAT は連続50 Hz（例）で安定搬送。項目数やビットレートに応じた**バックプレッシャ**設計。
-- **ESP-NOW LR対応（任意）**：遠距離・低レート向けに Long Range を切替（双方同時に有効化）。チャネル固定運用で**安定リンク**。
+### 3) Performance & Operational Ease
+- **Low latency & practical throughput**: DAT is stably transported at continuous 50 Hz (example). **Backpressure** design adapted to the number of fields and bitrate.
+- **ESP-NOW LR support (optional)**: Switch to Long Range for long-distance/low-rate scenarios (enable on both sides simultaneously). **Stable link** with fixed channel operation.
 
-### 4) デベロッパ体験
-- **即デバッグ**：`yourMCU_uart_demo` でヘッダとダミーデータを**即出力**。配線図（`docs/assets/Wiring_Diagram.png`）とデモ動画で**立ち上げ容易**。
-- **Live可視化ツール（Python）**：`host/python/apps/viewer.py`  
-  - HDR自動追従、CSVロギング、**自動Y軸スケーリング（余白/スムージング/0含む切替）**、シリアル自動再接続。
-  - 依存最小（`pyserial` + `matplotlib`）、`requirements.txt` あり。
+### 4) Developer Experience
+- **Instant debugging**: `yourMCU_uart_demo` outputs headers and dummy data **immediately**. Easy setup with wiring diagram (`docs/assets/Wiring_Diagram.png`) and demo video.
+- **Live visualization tool (Python)**: `host/python/apps/viewer.py`  
+  - Auto HDR tracking, CSV logging, **auto Y-axis scaling (margin/smoothing/include-zero toggle)**, serial auto-reconnect.
+  - Minimal dependencies (`pyserial` + `matplotlib`), with `requirements.txt` provided.
 
-### 5) 拡張性
-- **データ定義の追加/差し替えが容易**：`fields=` の列名合意だけで、学生側MCUの**実装自由度**が高い。
-- **安全な進化**：ACK/再送・圧縮・暗号化・タイム同期（例：親機から時刻配布）などの拡張ポイントを**明示的に分離**。
+### 5) Extensibility
+- **Easy to add/replace data definitions**: Just agree on column names in `fields=`, giving students' MCUs **high implementation freedom**.
+- **Safe evolution**: Extension points for ACK/retransmission, compression, encryption, time synchronization (e.g., time distribution from parent) are **explicitly separated**.
 
-> 要するに：**壊れにくく、直せて、見える**。そして**誰のMCUでも乗せ替えやすい**テレメトリの土台です。
+> In short: **Hard to break, easy to fix, visible**. And a telemetry foundation that's **easy to adapt to anyone's MCU**.
 
 
 ## Wiring
@@ -67,14 +70,14 @@ Robust **UART → ESP-NOW** telemetry bridge for ESP32 (XIAO ESP32-C3 / ESP32-WR
 ![esp_now_demo](docs/assets/esp_now_demo.gif)
 
 > [!NOTE]
-> *Shown:* `examples/yourMCU_uart_demo/yourMCU_uart_demo.ino` → `firmware/bridge/parent_uart_bridge` → `firmware/bridge/child_uart_bridge` のシリアル出力挙動（Arduino IDE）。
+> *Shown:* Serial output behavior (Arduino IDE) of `examples/yourMCU_uart_demo/yourMCU_uart_demo.ino` → `firmware/bridge/parent_uart_bridge` → `firmware/bridge/child_uart_bridge`.
 
 ---
 
 ## Repository layout
 
 ```
-docs/ — ドキュメント類（配線図・デモ動画などを格納）
+docs/ — Documentation (wiring diagrams, demo videos, etc.)
   assets/
     esp_now_demo.gif
     python_graph.gif
@@ -84,26 +87,26 @@ docs/ — ドキュメント類（配線図・デモ動画などを格納）
   overview.md
   packet-format.md
 
-examples/ — your MCU に書き込むデモ用プログラム
+examples/ — Demo programs to flash to your MCU
   yourMCU_uart_demo/
     yourMCU_uart_demo.ino
   README.md
 
-firmware/ — メイン：ESP-NOW UART ブリッジ（espnow-uart-bridge）のプログラム群
-  bridge/ — 親機・子機ブリッジのスケッチ
+firmware/ — Main: ESP-NOW UART bridge (espnow-uart-bridge) programs
+  bridge/ — Parent/child bridge sketches
     child_uart_bridge/
       child_uart_bridge.ino
     parent_uart_bridge/
       parent_uart_bridge.ino
 
-host/ — Python 製ホストソフトウェア・デモプログラム（可視化・データ解析用）
+host/ — Python host software and demo programs (visualization, data analysis)
   python/
     apps/
-       viewer.py — センサデータのリアルタイムビューア
-       requirements.txt — 依存ライブラリ一覧
+       viewer.py — Real-time viewer for sensor data
+       requirements.txt — List of dependencies
 
-tools/ — 動作確認ツール（MACアドレスチェックなど）
-  MAC_Check/ — MACアドレス確認用プログラム
+tools/ — Operation verification tools (MAC address check, etc.)
+  MAC_Check/ — MAC address verification program
     mac_check/
       mac_check.ino
 
@@ -117,32 +120,32 @@ README.md
 
 1. **Child (receiver)**  
    - Flash `firmware/bridge/child_uart_bridge/child_uart_bridge.ino`  
-   - Open Serial @ **115200** → CSVが流れたらOK
+   - Open Serial @ **115200** → CSV should flow
 
 2. **Parent (bridge)**  
    - Flash `firmware/bridge/parent_uart_bridge/parent_uart_bridge.ino`  
-   - 設定するもの：
-     - `peerMac[]` → **子機の STA MAC**（`WiFi.macAddress()`）
-     - `CHANNEL` → 子機と同じ（例: `1`）
-     - XIAO ESP32-C3 の UART: **RX=D7(GPIO20)**、TXは未使用でOK  
-   - Serial @ **115200** で `[STAT]` や `[REINIT]` ログを確認
+   - Configure:
+     - `peerMac[]` → Child's STA MAC (`WiFi.macAddress()`)
+     - `CHANNEL` → Same as child (e.g., `1`)
+     - XIAO ESP32-C3 UART: **RX=D7(GPIO20)**, TX can be unused  
+   - Check `[STAT]` and `[REINIT]` logs via Serial @ **115200**
 
 3. **Sender (your MCU or demo)**  
-   - すぐ試すなら `examples/yourMCU_uart_demo/yourMCU_uart_demo.ino` を別のESP32に書き込み  
-     - 出力例  
-       - `HDR,1,GLDR,fields=dt_ms,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp,rate=50`（起動時）  
-       - `DAT,<seq>,<t_ms>,<dt_ms>,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp`（50Hz）  
-   - 実機MCUからは同じ CSV 形式で UART 送信すれば、そのまま橋渡しされます
+   - For quick testing, flash `examples/yourMCU_uart_demo/yourMCU_uart_demo.ino` to another ESP32  
+     - Output example  
+      - `HDR,1,GLDR,fields=dt_ms,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp,rate=50` (at startup)  
+      - `DAT,<seq>,<t_ms>,<dt_ms>,ax,ay,az,gx,gy,gz,ail,elv,rud,batt,temp` (50Hz)  
+   - From your actual MCU, send the same CSV format via UART and it will be bridged as-is
 
 > [!IMPORTANT]
-> **全ノード同一チャネル必須。** LR を使う場合は **親/子/中継**すべてで `USE_WIFI_LR` を同時に有効化。
+> **All nodes must use the same channel.** If using LR, enable `USE_WIFI_LR` on **all parent/child/repeater** nodes simultaneously.
 
 > [!TIP]
-> 親機：firmware/bridge/child_uart_bridge
+> Parent: firmware/bridge/parent_uart_bridge
 > 
-> 子機：firmware/bridge/parent_uart_bridge
+> Child: firmware/bridge/child_uart_bridge
 > 
-> 滑空機のマイコン：examples/yourMCU_uart_demo
+> Glider MCU: examples/yourMCU_uart_demo
 ---
 
 ## Configuration (parent / child)
@@ -174,7 +177,7 @@ const int CHANNEL = 1;     // must match parent
 #define REQUIRE_HDR 0
 ```
 
-**yourMCU_uart_demo**（デモ）
+**yourMCU_uart_demo** (demo)
 ```cpp
 // Outgoing UART to parent
 HardwareSerial& OUT = Serial1;
@@ -192,45 +195,45 @@ const uint32_t HZ = 50;
 
 - **UART (text)**  
   - `HDR,1,GLDR,fields=<comma-separated-names>[,rate=…]`  
-  - `DAT,<src_seq>,<t_ms>,<values...>`（デモでは `<dt_ms>` を含む）
+  - `DAT,<src_seq>,<t_ms>,<values...>` (demo includes `<dt_ms>`)
 - **Over the air (ESP-NOW, binary)**  
   - `NowFrameHdr{ ver=1, type(1=HDR/2=DATA/3=HB), node_id, tx_seq, payload_len, crc16 }`  
   - `HDR payload{ schema_id(FNV-1a 16bit), fields_len, fields[] }`  
   - `DATA payload{ schema_id, src_seq, t_ms, value_count, float[value_count] }`  
   - CRC16-CCITT(0x1021)
 
-> 子機は CRC を検証し、CSVへ復元して `Serial.println`。`REQUIRE_HDR` で厳格運用も可能。
+> Child verifies CRC, reconstructs to CSV, and outputs via `Serial.println`. Strict operation possible with `REQUIRE_HDR`.
 
 ---
 
 ## Reading the logs
 
-- 親機 `[STAT]`:  
+- Parent `[STAT]`:  
   `UART=<B/s>  Q=<depth>/<cap> drop=<n>  HDR=<n> DAT=<n>  TX ok=<n> fail=<n> inflight=<n>`
-  - `TX ok=1` のみ増えるときは **HBだけ**通っている状態（子機はHBを表示しません）
-- 親機 `[REINIT] restarting WiFi/ESP-NOW...`：  
-  **リンク詰まり自動復旧**。`esp_now_deinit→wifi stop/start→set_channel→esp_now_init→add_peer` を実行
+  - When only `TX ok=1` increments: **Only HB** is getting through (child doesn't display HB)
+- Parent `[REINIT] restarting WiFi/ESP-NOW...`:  
+  **Auto link recovery from stall**. Executes `esp_now_deinit→wifi stop/start→set_channel→esp_now_init→add_peer`
 
 ---
 
 ## Troubleshooting
 
-- 子機に何も出ない → 親機が **HDR未取得**の可能性  
-  - デモは5秒おきに HDR 再送（数秒で復帰）  
-  - 親機は NVS の HDR を起動直後に再送する設計  
-- MAC が `00:00:...` → Wi-Fi 初期化順序を確認  
+- Nothing appears on child → Parent may not have **acquired HDR**  
+  - Demo resends HDR every 5 seconds (recovers in a few seconds)  
+  - Parent is designed to resend NVS HDR immediately after startup  
+- MAC shows `00:00:...` → Check Wi-Fi initialization order  
   `mode → wifi_start → set_channel → (LR) → esp_now_init → add_peer`
-- `ESP_ERR_ESPNOW_NO_MEM` 多発 → `MAX_INFLIGHT` を下げる、レート/項目数の見直し
-- `peerMac` は **子機の STA MAC** を使う（AP MAC ではない）
-- 配線：TX→RX、**GND 共通**、115200bps、行末は `println`
+- Frequent `ESP_ERR_ESPNOW_NO_MEM` → Lower `MAX_INFLIGHT`, review rate/field count
+- `peerMac` must use **child's STA MAC** (not AP MAC)
+- Wiring: TX→RX, **common GND**, 115200bps, line ending with `println`
 
 ---
 
 ## Host-side
 
-`host/python/apps/viewer.py`：  
-- UART からの CSV をリアルタイム可視化・記録（`pyserial`, `pandas`, `matplotlib/pyqtgraph`, `rich`, `typer`）  
-- ポート選択、保存、プロット対象フィールド、ダウンサンプリング、HDR追従
+`host/python/apps/viewer.py`:  
+- Real-time visualization and recording of CSV from UART (`pyserial`, `pandas`, `matplotlib/pyqtgraph`, `rich`, `typer`)  
+- Port selection, save, plot target fields, downsampling, HDR tracking
 
 ![python_graph](docs/assets/python_graph.gif)
 
