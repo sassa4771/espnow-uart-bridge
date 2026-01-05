@@ -1,12 +1,10 @@
 /*
-  child_csv_sink_robust.ino — ESP-NOW受信→CSV出力（LED/再初期化/厳格CRC）
+  child_csv_sink_pass_all.ino
+  PCからの全コマンドを親機へスルーパスする版
 */
-
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#include <esp_system.h>
-#include <esp_mac.h>
 
 #ifndef LED_PIN
 #  ifdef LED_BUILTIN
@@ -17,135 +15,122 @@
 #endif
 
 #define SERIAL_BAUD 115200
-const int CHANNEL = 1;      // 親機と一致
-// #define USE_WIFI_LR
+const int CHANNEL = 1;
 
-#define PAYLOAD_MAX  250
-#define REQUIRE_HDR  0   // 1にするとHDR未取得時のDATを捨てる
-
-enum : uint8_t { FT_HDR=1, FT_DATA=2, FT_HB=3 };
-
+// プロトコル定義
+enum : uint8_t { FT_HDR=1, FT_DATA=2, FT_HB=3, FT_LOG=4 };
 struct __attribute__((packed)) NowFrameHdr{
   uint8_t ver, type; uint16_t node_id; uint32_t tx_seq; uint16_t payload_len, crc16;
 };
-struct __attribute__((packed)) PayloadHDR{ uint16_t schema_id, fields_len; };
-struct __attribute__((packed)) PayloadDATAHead{ uint16_t schema_id; uint32_t src_seq, t_ms; uint16_t value_count; };
-struct __attribute__((packed)) PayloadHB{ uint32_t tx_ms; uint16_t q_depth; uint16_t inflight; };
 
-static uint16_t crc16_ccitt(const uint8_t* d, size_t n){
-  uint16_t c=0xFFFF; for(size_t i=0;i<n;i++){ c^=(uint16_t)d[i]<<8; for(int b=0;b<8;b++) c=(c&0x8000)?(c<<1)^0x1021:(c<<1); }
-  return c;
-}
+// ==========================================
+// ★設定: 親機(機体側)のMACアドレス
+// もし不明な場合は {0xFF,0xFF,...} (ブロードキャスト) でも動きますが、
+// 特定できているならそのアドレスを書いてください。
+const uint8_t parentMac[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; 
+// ==========================================
 
-static volatile uint32_t last_rx_ms = 0;
-static bool     got_hdr = false;
-static uint16_t expect_schema = 0;
+// 宛先が特定されているかチェック
+bool isBroadcast = true;
 
-static void onRecv(const esp_now_recv_info* info, const uint8_t* data, int len){
-  if(len < (int)sizeof(NowFrameHdr)) return;
-  const NowFrameHdr* h = (const NowFrameHdr*)data;
-  if(h->ver!=1) return;
-  if(sizeof(NowFrameHdr)+h->payload_len != (uint16_t)len) return;
-
-  // 厳格CRC（CRCフィールドを0にして再計算）
-  uint8_t tmp[PAYLOAD_MAX + sizeof(NowFrameHdr)];
-  if (len > (int)sizeof(tmp)) return;
-  memcpy(tmp, data, len); ((NowFrameHdr*)tmp)->crc16 = 0;
-  if (crc16_ccitt(tmp, len) != h->crc16) return;
-
-  const uint8_t* p = data + sizeof(NowFrameHdr);
-  last_rx_ms = millis();
-  digitalWrite(LED_PIN, HIGH); // フラッシュ
-
-  if(h->type==FT_HDR){
-    if(h->payload_len < sizeof(PayloadHDR)) return;
-    const PayloadHDR* ph=(const PayloadHDR*)p;
-    if(h->payload_len < sizeof(PayloadHDR)+ph->fields_len) return;
-#if REQUIRE_HDR
-    got_hdr = true;
-    expect_schema = ph->schema_id;
-#endif
-    Serial.print("HDR,1,GLDR,fields=");
-    for(int i=0;i<ph->fields_len;i++) Serial.write(p+sizeof(PayloadHDR)+i,1);
-    Serial.println();
-
-  }else if(h->type==FT_DATA){
-    if(h->payload_len < sizeof(PayloadDATAHead)) return;
-    const PayloadDATAHead* dh=(const PayloadDATAHead*)p;
-    int need = sizeof(PayloadDATAHead) + dh->value_count*sizeof(float);
-    if(h->payload_len < need) return;
-
-#if REQUIRE_HDR
-    if (!got_hdr) { Serial.println("#WARN no HDR yet; drop DATA"); return; }
-    if (dh->schema_id != expect_schema) { Serial.println("#INFO schema changed; wait HDR"); got_hdr=false; return; }
-#endif
-
-    const float* vals=(const float*)(p + sizeof(PayloadDATAHead));
-    Serial.print("DAT,"); Serial.print(dh->src_seq);
-    Serial.print(',');    Serial.print(dh->t_ms);
-    for(int i=0;i<dh->value_count;i++){ Serial.print(','); Serial.print(vals[i], 6); }
-    Serial.println();
-
-  }else if(h->type==FT_HB){
-    // 必要なら可視化：
-    // const PayloadHB* hb=(const PayloadHB*)p;
-    // Serial.printf("HB,tx_ms=%lu,q=%u,if=%u\n",(unsigned long)hb->tx_ms,hb->q_depth,hb->inflight);
-  }
-}
-
-static void reinit_now(){
-  Serial.println("[REINIT] RX idle too long → restart ESP-NOW");
-  esp_now_deinit();
-  esp_wifi_stop();
-  delay(50);
-  esp_wifi_start();
-  delay(50);
-  esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE);
-#ifdef USE_WIFI_LR
-  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR);
-#endif
-  esp_now_init();
-  esp_now_register_recv_cb(onRecv);
-}
+void onRecv(const uint8_t* mac_addr, const uint8_t* data, int len);
 
 void setup(){
   pinMode(LED_PIN, OUTPUT); digitalWrite(LED_PIN, LOW);
-
   Serial.begin(SERIAL_BAUD);
   delay(200);
 
+  // MACアドレスがオール0ならブロードキャスト扱いにする判定
+  isBroadcast = true;
+  for(int i=0; i<6; i++) { if(parentMac[i]!=0) isBroadcast=false; }
+  // ※コード上で直接 parentMac を {0xFF...} にしている場合も考慮
+  if(parentMac[0]==0xFF) isBroadcast=true;
+
   WiFi.mode(WIFI_STA);
   ESP_ERROR_CHECK( esp_wifi_start() );
-  delay(50);
-  ESP_ERROR_CHECK( esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE) );
-#ifdef USE_WIFI_LR
-  ESP_ERROR_CHECK( esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR) );
-#endif
-  WiFi.setSleep(false);
+  esp_wifi_set_max_tx_power(84); 
 
-  Serial.printf("Child sink start. My MAC (STA): %s  CH=%d\n", WiFi.macAddress().c_str(), CHANNEL);
+  ESP_ERROR_CHECK( esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE) );
+  WiFi.setSleep(false);
 
   ESP_ERROR_CHECK( esp_now_init() );
   esp_now_register_recv_cb(onRecv);
-  Serial.println("Waiting ESP-NOW frames...");
+  
+  // ピア登録
+  esp_now_peer_info_t p{}; 
+  if (isBroadcast) {
+     const uint8_t bc[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+     memcpy(p.peer_addr, bc, 6);
+  } else {
+     memcpy(p.peer_addr, parentMac, 6);
+  }
+  p.channel = CHANNEL; 
+  p.ifidx = WIFI_IF_STA; 
+  p.encrypt = false;
+  
+  if (esp_now_add_peer(&p) != ESP_OK) {
+    Serial.println("Failed to add peer");
+  } else {
+    Serial.println("Peer Added");
+  }
+
+  Serial.println("Child Sink Ready (Pass-All)");
+}
+
+void sendCmdToParent(char c){
+  uint8_t buf[2] = { 0xFE, (uint8_t)c };
+  if (isBroadcast) {
+    const uint8_t bc[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    esp_now_send(bc, buf, 2);
+  } else {
+    esp_now_send(parentMac, buf, 2);
+  }
 }
 
 void loop(){
-  uint32_t now = millis();
-  static uint32_t lastBlink=0; static bool bl=false;
-
-  if (now - last_rx_ms < 2000){
-    digitalWrite(LED_PIN, HIGH);
-  }else{
-    if (now - lastBlink > 500){ lastBlink = now; bl = !bl; digitalWrite(LED_PIN, bl); }
+  // USBシリアルからの入力
+  if (Serial.available()){
+    char c = Serial.read();
+    
+    // ★ここが重要: 'A'や'M'だけでなく、改行以外すべての文字を通す
+    if (c != '\r' && c != '\n') {
+       sendCmdToParent(c); 
+       
+       // フィードバックLED (ごく短く点灯)
+       digitalWrite(LED_PIN, HIGH);
+       delay(10);
+       digitalWrite(LED_PIN, LOW);
+    }
   }
-
-  // 10秒以上無受信で再初期化
-  static uint32_t lastReinitTry=0;
-  if (now - last_rx_ms > 10000 && now - lastReinitTry > 10000){
-    reinit_now();
-    lastReinitTry = now;
-  }
-
   delay(1);
+}
+
+// 受信処理 (変更なし)
+void onRecv(const uint8_t* mac, const uint8_t* data, int len){
+  if(len < (int)sizeof(NowFrameHdr)) return;
+  const NowFrameHdr* h = (const NowFrameHdr*)data;
+  const uint8_t* p = data + sizeof(NowFrameHdr);
+  
+  // データ受信時点灯
+  digitalWrite(LED_PIN, HIGH);
+  
+  if(h->type==FT_HDR){
+    Serial.print("HDR,1,GLDR,fields=");
+    for(int i=4; i<h->payload_len; i++) Serial.write(p[i]);
+    Serial.println();
+  }else if(h->type==FT_DATA){
+    uint32_t src_seq; memcpy(&src_seq, p+2, 4);
+    uint32_t t_ms;    memcpy(&t_ms,    p+6, 4);
+    uint16_t count;   memcpy(&count,   p+10,2);
+    const float* vals = (const float*)(p + 12);
+
+    Serial.print("DAT,"); Serial.print(src_seq);
+    Serial.print(',');    Serial.print(t_ms);
+    for(int i=0;i<count;i++){ Serial.print(','); Serial.print(vals[i], 3); }
+    Serial.println();
+  }else if(h->type==FT_LOG){
+    Serial.write(p, h->payload_len);
+    Serial.println();
+  }
+  digitalWrite(LED_PIN, LOW);
 }
