@@ -1,4 +1,4 @@
-# espnow-uart-bridge
+# EUB：espnow-uart-bridge
 
 [日本語版 README はこちら / Japanese README](README_ja.md)
 
